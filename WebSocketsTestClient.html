@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+ 
+<html>
+    <head>
+        <title>WebSockets Test Client</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+        <style>
+        	table, td {border: 1px solid black; border-collapse: collapse; font-color: red;}
+        	th, td {
+        		font-weight:bold;
+        		table-layput: fixed;
+        		width: 500px;
+        		text-align: right;
+        	}
+        </style>
+    </head>
+    <body>
+       
+        <div>
+            <!--  <input type="text" id="messageinput"/> -->
+        </div>
+        
+        <div>
+            <button type="button" onclick="openSocket();" >Open</button>
+            <!-- <button type="button" onclick="send();" >Send</button> -->
+            <button type="button" onclick="closeSocket();" >Close</button>
+        </div>
+        
+        <!-- Server responses get written here -->
+        <div id="messages"></div>
+        
+        <!-- Script to utilise the WebSocket -->
+        <script type="text/javascript">
+        
+        	var NUMBER_OF_ROWS = 40;
+			var NUMBER_OF_COLS = 10;
+
+       		<!-- Initialize table -->
+       		document.write('<table id="MarketDataUpdates">')
+       		for (rndx = 0; rndx < NUMBER_OF_ROWS; rndx++) {
+       			document.write('<tr>')
+       			for (cndx = 0; cndx < NUMBER_OF_COLS; cndx++) {
+       				document.write('<td>0.0</td>')
+				}
+       			document.write('</tr>')
+       		}
+       		document.write('</table>')
+                       
+            var webSocket;
+            var messages = document.getElementById("messages");
+           
+           
+            function openSocket(){
+                // Ensures only one connection is open at a time
+                
+                if(webSocket !== undefined && webSocket.readyState !== WebSocket.CLOSED) {
+					writeResponse("WebSocket is already opened.");
+					return;
+                }
+                // Create a new instance of the websocket
+                                                               
+				webSocket = new WebSocket("ws://localhost:8080/WebSocketsTestServer/echo");
+		
+                /**
+                 * Binds functions to the listeners for the websocket.
+                 */
+                webSocket.onopen = function(event){
+                    // For reasons I can't determine, onopen gets called twice
+                    // and the first time event.data is undefined.
+                    // Leave a comment if you know the answer.
+                    if(event.data === undefined)
+                        return;
+                    writeResponse(event.data);
+                };
+
+                webSocket.onmessage = function(event){
+                    //writeResponse(event.data);
+                    update(event.data);
+                };
+ 
+                webSocket.onclose = function(event){
+                    writeResponse("Connection closed");
+                };
+            }
+           
+            /**
+             * Sends the value of the text input to the server
+             */
+            function send() {
+                var text = document.getElementById("messageinput").value;
+                webSocket.send(text);
+            }
+           
+            function closeSocket() {
+                webSocket.close();
+            }
+ 
+            function writeResponse(text){
+                messages.innerHTML += "<br/>" + text;
+            }
+          
+            function update(value) {
+            
+            	if (isNumber(value) === false)
+            		return;
+            	
+            	var rowNdx = Math.floor((Math.random() * NUMBER_OF_ROWS));
+            	var cellNdx = Math.floor((Math.random() * NUMBER_OF_COLS));
+            	
+            	var row = document.getElementById("MarketDataUpdates").rows[rowNdx].cells;
+            	row[cellNdx].innerHTML = value;
+            }
+            
+            function isNumber(n) {
+            	return !isNaN(parseFloat(n)) && isFinite(n);
+            }
+           
+        </script>
+       
+    </body>
+</html>
